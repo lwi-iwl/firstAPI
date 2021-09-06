@@ -45,11 +45,14 @@ class Sprite{
       {
       FillRect (oldDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
       BitBlt(oldDC, x-relx, y-rely, bm.bmWidth, bm.bmHeight, newDC, 0, 0, SRCCOPY);
+      //SwapBuffers(newDC);
       this -> setOldParam(x, y);
       this -> setOldSecondParam();
       }
       else{
-      if (GetTickCount()-msec > 5000){
+      if ((msec != 0)&&(GetTickCount()-msec > 5000)){
+        this -> setRelativeParam(oldx, oldy);
+        //MessageBox (hWnd,"nm,mn","hjhj", NULL);
         if ((x > oldx) && (y>oldy))
           if ((y+bm.bmHeight-rely)>=700)
             direction = 1;
@@ -80,6 +83,7 @@ class Sprite{
       isOut = false;
       if (GetAsyncKeyState(VK_LBUTTON) >= 0){
         isDown = false;
+        this -> setRelativeParam(oldx, oldy);
       }
       else
         SetCursor(LoadCursor(NULL, IDC_HAND));
@@ -155,14 +159,14 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     if (GetTickCount()-msec > 5000)
     {
       if (direction == 0)
-        sprite.create(sprite.getX()+3, sprite.getY()+3);
+        sprite.create(sprite.getX()+5, sprite.getY()+5);
       else if (direction == 1)
-        sprite.create(sprite.getX()+3, sprite.getY()-3);
+        sprite.create(sprite.getX()+5, sprite.getY()-5);
       else if (direction == 2)
-        sprite.create(sprite.getX()-3, sprite.getY()-3);
+        sprite.create(sprite.getX()-5, sprite.getY()-5);
       else if (direction == 3)
-        sprite.create(sprite.getX()-3, sprite.getY()+3);
-      Sleep(33);
+        sprite.create(sprite.getX()-5, sprite.getY()+5);
+      Sleep(20);
     }
 
     if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -179,12 +183,12 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 {
   WORD xPos, yPoz;
   POINT pt;
-  msec = 0;
   switch (message)
   {
 
 
   case WM_LBUTTONDOWN:
+    msec = 0;
     GetCursorPos (&pt);
     ScreenToClient (hWnd, &pt);
     if ((sprite.getX() <= pt.x) && (sprite.getY() <= pt.y) && (sprite.getSecondX() >= pt.x) && (sprite.getSecondY() >= pt.y)){
@@ -196,6 +200,7 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
     break;    
   
   case WM_LBUTTONUP:
+    msec = 0;
     if (isDown){
       GetCursorPos (&pt);
       SetCursor(LoadCursor(NULL, IDC_ARROW));
@@ -208,6 +213,7 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
     break;
 
   case WM_MOUSEMOVE:
+    msec = 0;
     if (isOut)
       sprite.setOutFalse();
     if (isDown){
@@ -218,6 +224,7 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
     break;
 
   case WM_MOUSEWHEEL:
+    msec = 0;
     if (LOWORD(wParam) == MK_CONTROL)
       sprite.create(sprite.getX()+GET_WHEEL_DELTA_WPARAM(wParam), sprite.getY());   
     else
@@ -225,6 +232,7 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
     break;
 
   case WM_KEYDOWN:
+    msec = 0;
     if(wParam == VK_NUMPAD2)
       sprite.create(sprite.getX(), sprite.getY()+10);
     else if (wParam == VK_NUMPAD8)
