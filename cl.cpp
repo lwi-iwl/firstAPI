@@ -11,8 +11,8 @@ LRESULT __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 class Sprite{
   private:
     HBITMAP bmpSource = NULL;
-    HDC winDC;
-    HDC memDC;
+    HDC oldDC;
+    HDC newDC;
     HBITMAP oldBmp;
     BITMAP bm;
     PAINTSTRUCT ps;
@@ -32,9 +32,9 @@ class Sprite{
       GetObject(bmpSource, sizeof( bm ), &bm );
       oldsecondx = oldx + bm.bmWidth;
       oldsecondy = oldy + bm.bmHeight;
-      winDC = GetDC(hWnd);
-      memDC = CreateCompatibleDC(winDC);
-      oldBmp = (HBITMAP)SelectObject(memDC, bmpSource);
+      oldDC = GetDC(hWnd);
+      newDC = CreateCompatibleDC(oldDC);
+      oldBmp = (HBITMAP)SelectObject(newDC, bmpSource);
       GetClientRect (hWnd, &rect);
     }
 
@@ -43,8 +43,8 @@ class Sprite{
     void create(int x, int y){
       if ((((x-relx) > 0) && ((y-rely) > 0) && ((x+bm.bmWidth-relx) < 1280) && ((y+bm.bmHeight-rely)<700)))
       {
-      FillRect (winDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
-      BitBlt(winDC, x-relx, y-rely, bm.bmWidth, bm.bmHeight, memDC, 0, 0, SRCCOPY);
+      FillRect (oldDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
+      BitBlt(oldDC, x-relx, y-rely, bm.bmWidth, bm.bmHeight, newDC, 0, 0, SRCCOPY);
       this -> setOldParam(x, y);
       this -> setOldSecondParam();
       }
@@ -80,8 +80,9 @@ class Sprite{
       isOut = false;
       if (GetAsyncKeyState(VK_LBUTTON) >= 0){
         isDown = false;
-        
       }
+      else
+        SetCursor(LoadCursor(NULL, IDC_HAND));
     }
 
     void setRelativeParam(int x, int y){
@@ -95,9 +96,9 @@ class Sprite{
     }
 
     void Clean(){
-      SelectObject(memDC, oldBmp); 
-      DeleteDC(memDC);
-      ReleaseDC(hWnd, winDC);
+      SelectObject(newDC, oldBmp); 
+      DeleteDC(newDC);
+      ReleaseDC(hWnd, oldDC);
     }
 
     void setOldParam(int x , int y){
@@ -145,7 +146,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
   sprite.hWnd = hwnd;
   sprite.preparation();
   sprite.create(100, 100);
-
+  SetCursor(LoadCursor(NULL, IDC_ARROW));
   MSG msg = {};
   while (msg.message != WM_QUIT)
   {
@@ -161,7 +162,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         sprite.create(sprite.getX()-3, sprite.getY()-3);
       else if (direction == 3)
         sprite.create(sprite.getX()-3, sprite.getY()+3);
-      Sleep(10);
+      Sleep(33);
     }
 
     if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -187,6 +188,7 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
     GetCursorPos (&pt);
     ScreenToClient (hWnd, &pt);
     if ((sprite.getX() <= pt.x) && (sprite.getY() <= pt.y) && (sprite.getSecondX() >= pt.x) && (sprite.getSecondY() >= pt.y)){
+    SetCursor(LoadCursor(NULL, IDC_HAND));
     sprite.setRelativeParam(pt.x, pt.y);
     isDown = true;
     isOut = false;
@@ -196,6 +198,7 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
   case WM_LBUTTONUP:
     if (isDown){
       GetCursorPos (&pt);
+      SetCursor(LoadCursor(NULL, IDC_ARROW));
       ScreenToClient (hWnd, &pt);
       sprite.setOldParam(pt.x, pt.y);
       sprite.setOldSecondParam();
