@@ -1,6 +1,9 @@
 #include <windows.h>
+#include <iostream>
+#pragma comment(lib, "Msimg32.lib")
+//g++ cl.cpp -mwindows -lmsimg32
 
-LRESULT __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
   
   bool isDown = false;
   bool isOut = false;
@@ -15,7 +18,6 @@ class Sprite{
     HDC newDC;
     HBITMAP oldBmp;
     BITMAP bm;
-    PAINTSTRUCT ps;
     RECT rect;
     HDC hdcDestination;
     int oldx = 100;
@@ -41,40 +43,40 @@ class Sprite{
 
 
     void create(int x, int y){
-      if ((((x-relx) > 0) && ((y-rely) > 0) && ((x+bm.bmWidth-relx) < 1280) && ((y+bm.bmHeight-rely)<700)))
+      if (((x-relx) > -10) && ((y-rely) > 0) && ((x+bm.bmWidth-relx) < 1280) && ((y+bm.bmHeight-rely)<690))
       {
       FillRect (oldDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
-      BitBlt(oldDC, x-relx, y-rely, bm.bmWidth, bm.bmHeight, newDC, 0, 0, SRCCOPY);
-      //SwapBuffers(newDC);
+      //BitBlt(oldDC, x-relx, y-rely, bm.bmWidth, bm.bmHeight, newDC, 0, 0, SRCCOPY);
+      TransparentBlt(oldDC, x-relx, y-rely, bm.bmWidth, bm.bmHeight, newDC, 0, 0, bm.bmWidth, bm.bmHeight, RGB(255,255,255));
       this -> setOldParam(x, y);
       this -> setOldSecondParam();
       }
       else{
       if ((msec != 0)&&(GetTickCount()-msec > 5000)){
-        this -> setRelativeParam(oldx, oldy);
         //MessageBox (hWnd,"nm,mn","hjhj", NULL);
         if ((x > oldx) && (y>oldy))
-          if ((y+bm.bmHeight-rely)>=700)
+          if ((y+bm.bmHeight)>=690)
             direction = 1;
           else
             direction = 3;
         else if ((x > oldx) && (y<oldy))
-          if ((y-rely) <= 0)
+          if ((y) <= 0)
             direction = 0;
           else
             direction = 2;
         else if ((x < oldx) && (y<oldy))
-          if ((y-rely) <= 0)
+          if ((y) <= 0)
             direction = 3;
           else
             direction = 1;
         else if ((x < oldx) && (y>oldy))
-          if ((x-relx) <= 0)
+          if ((x) <= 0)
             direction = 0;
           else
             direction = 2;
-
+          
       }
+
       isOut = true;
       }
     }
@@ -129,7 +131,9 @@ class Sprite{
 
 
 };
+
 Sprite sprite;
+
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
   WNDCLASS windowClass = { 0 };
@@ -154,21 +158,6 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
   MSG msg = {};
   while (msg.message != WM_QUIT)
   {
-    if (msec == 0)
-      msec = GetTickCount();
-    if (GetTickCount()-msec > 5000)
-    {
-      if (direction == 0)
-        sprite.create(sprite.getX()+5, sprite.getY()+5);
-      else if (direction == 1)
-        sprite.create(sprite.getX()+5, sprite.getY()-5);
-      else if (direction == 2)
-        sprite.create(sprite.getX()-5, sprite.getY()-5);
-      else if (direction == 3)
-        sprite.create(sprite.getX()-5, sprite.getY()+5);
-      Sleep(20);
-    }
-
     if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
     {
       TranslateMessage(&msg);
@@ -179,13 +168,33 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
   return 0;
 }
 
-__int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   WORD xPos, yPoz;
   POINT pt;
   switch (message)
   {
 
+  case WM_CREATE:
+    SetTimer(hWnd, 1,20,NULL);
+    break;
+  
+  case WM_TIMER:
+    if (msec == 0)
+      msec = GetTickCount();
+    else if (GetTickCount()-msec > 5000)
+    {
+      sprite.setRelativeParam(sprite.getX(), sprite.getY());
+      if (direction == 0)
+        sprite.create(sprite.getX()+5, sprite.getY()+5);
+      else if (direction == 1)
+        sprite.create(sprite.getX()+5, sprite.getY()-5);
+      else if (direction == 2)
+        sprite.create(sprite.getX()-5, sprite.getY()-5);
+      else if (direction == 3)
+        sprite.create(sprite.getX()-5, sprite.getY()+5);
+    }
+    break;
 
   case WM_LBUTTONDOWN:
     msec = 0;
@@ -205,8 +214,6 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
       GetCursorPos (&pt);
       SetCursor(LoadCursor(NULL, IDC_ARROW));
       ScreenToClient (hWnd, &pt);
-      sprite.setOldParam(pt.x, pt.y);
-      sprite.setOldSecondParam();
       sprite.setRelativeParam(sprite.getX(), sprite.getY());
       isDown = false;
     }
@@ -257,7 +264,6 @@ __int64 __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 
   default:
     return DefWindowProc(hWnd, message, wParam, lParam);
-
   }
 
   return 0;
